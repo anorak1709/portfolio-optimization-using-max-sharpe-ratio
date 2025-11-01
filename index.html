@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Optimizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background: linear-gradient(to bottom right, #283618, #606C38, #283618);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-6">
+    <div class="max-w-7xl mx-auto">
+        <div class="bg-[#FEFAE0] bg-opacity-95 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border-2 border-[#606C38]">
+            <!-- Header -->
+            <div class="flex items-center gap-3 mb-8">
+                <i data-lucide="trending-up" class="w-10 h-10 text-[#606C38]"></i>
+                <h1 class="text-4xl font-bold text-[#283618]">Portfolio Optimizer</h1>
+            </div>
+
+            <!-- Input Section -->
+            <div class="grid md:grid-cols-2 gap-6 mb-8">
+                <!-- Add Holdings -->
+                <div class="bg-[#606C38] bg-opacity-10 rounded-xl p-6 border-2 border-[#606C38] border-opacity-30">
+                    <h2 class="text-xl font-semibold text-[#283618] mb-4 flex items-center gap-2">
+                        <i data-lucide="plus" class="w-5 h-5"></i>
+                        Add Holdings
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-[#283618] mb-2">Stock Ticker</label>
+                            <input type="text" id="ticker" placeholder="e.g., HFCL.NS"
+                                class="w-full px-4 py-2 bg-white border-2 border-[#606C38] border-opacity-30 rounded-lg text-[#283618] focus:outline-none focus:ring-2 focus:ring-[#606C38]">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-[#283618] mb-2">Quantity</label>
+                            <input type="number" id="quantity" placeholder="Number of shares"
+                                class="w-full px-4 py-2 bg-white border-2 border-[#606C38] border-opacity-30 rounded-lg text-[#283618] focus:outline-none focus:ring-2 focus:ring-[#606C38]">
+                        </div>
+                        
+                        <button onclick="addHolding()"
+                            class="w-full bg-[#606C38] hover:bg-[#283618] text-[#FEFAE0] font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+                            <i data-lucide="plus" class="w-5 h-5"></i>
+                            Add Stock
+                        </button>
+                    </div>
+
+                    <div id="holdings-list" class="mt-6 space-y-2"></div>
+                </div>
+
+                <!-- Parameters -->
+                <div class="bg-[#606C38] bg-opacity-10 rounded-xl p-6 border-2 border-[#606C38] border-opacity-30">
+                    <h2 class="text-xl font-semibold text-[#283618] mb-4 flex items-center gap-2">
+                        <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                        Analysis Parameters
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-[#283618] mb-2">Benchmark Index</label>
+                            <input type="text" id="benchmark" value="^NSEI"
+                                class="w-full px-4 py-2 bg-white border-2 border-[#606C38] border-opacity-30 rounded-lg text-[#283618] focus:outline-none focus:ring-2 focus:ring-[#606C38]">
+                            <p class="text-xs text-[#606C38] mt-1">Default: ^NSEI (NIFTY 50)</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-[#283618] mb-2">Start Date</label>
+                            <input type="date" id="startDate" value="2018-01-01"
+                                class="w-full px-4 py-2 bg-white border-2 border-[#606C38] border-opacity-30 rounded-lg text-[#283618] focus:outline-none focus:ring-2 focus:ring-[#606C38]">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-[#283618] mb-2">Risk-Free Rate</label>
+                            <input type="number" step="0.001" id="riskFreeRate" value="0.065"
+                                class="w-full px-4 py-2 bg-white border-2 border-[#606C38] border-opacity-30 rounded-lg text-[#283618] focus:outline-none focus:ring-2 focus:ring-[#606C38]">
+                            <p class="text-xs text-[#606C38] mt-1">Annual rate (e.g., 0.065 = 6.5%)</p>
+                        </div>
+
+                        <button onclick="analyzePortfolio()" id="analyzeBtn"
+                            class="w-full bg-gradient-to-r from-[#606C38] to-[#283618] hover:from-[#283618] hover:to-[#606C38] text-[#FEFAE0] font-bold py-3 px-4 rounded-lg transition-all shadow-lg">
+                            Analyze Portfolio
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Display -->
+            <div id="error-box" class="hidden bg-[#BC6C25] bg-opacity-20 border-2 border-[#BC6C25] rounded-lg p-4 mb-6 flex items-start gap-3">
+                <i data-lucide="alert-circle" class="w-5 h-5 text-[#BC6C25] flex-shrink-0 mt-0.5"></i>
+                <p id="error-message" class="text-[#BC6C25] font-medium"></p>
+            </div>
+
+            <!-- Results Section -->
+            <div id="results" class="hidden space-y-6">
+                <!-- Metrics Cards -->
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Portfolio Metrics -->
+                    <div class="bg-gradient-to-br from-[#606C38] to-[#283618] rounded-xl p-6 border-2 border-[#606C38] shadow-xl">
+                        <h3 class="text-2xl font-bold text-[#FEFAE0] mb-4">Your Portfolio</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-[#FEFAE0] opacity-90">CAGR:</span>
+                                <span id="port-cagr" class="text-2xl font-bold text-[#DDA15E]">-</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-[#FEFAE0] opacity-90">Annual Volatility:</span>
+                                <span id="port-vol" class="text-xl font-semibold text-[#DDA15E]">-</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-[#FEFAE0] opacity-90">Sharpe Ratio:</span>
+                                <span id="port-sharpe" class="text-xl font-semibold text-[#DDA15E]">-</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-[#FEFAE0] opacity-90">Max Drawdown:</span>
+                                <span id="port-drawdown" class="text-xl font-semibold text-[#BC6C25]">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Benchmark Metrics -->
+                    <div class="bg-gradient-to-br from-[#DDA15E] to-[#BC6C25] rounded-xl p-6 border-2 border-[#DDA15E] shadow-xl">
+                        <h3 class="text-2xl font-bold text-[#283618] mb-4">Benchmark (<span id="bench-name">-</span>)</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-[#283618] opacity-90">CAGR:</span>
+                                <span id="bench-cagr" class="text-2xl font-bold text-[#283618]">-</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-[#283618] opacity-90">Annual Volatility:</span>
+                                <span id="bench-vol" class="text-xl font-semibold text-[#283618]">-</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-[#283618] opacity-90">Sharpe Ratio:</span>
+                                <span id="bench-sharpe" class="text-xl font-semibold text-[#283618]">-</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-[#283618] opacity-90">Max Drawdown:</span>
+                                <span id="bench-drawdown" class="text-xl font-semibold text-[#606C38]">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="bg-white rounded-xl p-6 border-2 border-[#606C38] border-opacity-30 shadow-lg">
+                    <h3 class="text-xl font-bold text-[#283618] mb-4">Cumulative Returns (Normalized)</h3>
+                    <canvas id="chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        
+        let holdings = [];
+        let chartInstance = null;
+
+        function addHolding() {
+            const ticker = document.getElementById('ticker').value.toUpperCase().trim();
+            const quantity = parseFloat(document.getElementById('quantity').value);
+            
+            if (ticker && quantity) {
+                holdings.push({ ticker, quantity, id: Date.now() });
+                updateHoldingsList();
+                document.getElementById('ticker').value = '';
+                document.getElementById('quantity').value = '';
+                hideError();
+            }
+        }
+
+        function removeHolding(id) {
+            holdings = holdings.filter(h => h.id !== id);
+            updateHoldingsList();
+        }
+
+        function updateHoldingsList() {
+            const list = document.getElementById('holdings-list');
+            if (holdings.length === 0) {
+                list.innerHTML = '';
+                return;
+            }
+            
+            list.innerHTML = '<h3 class="text-sm font-medium text-[#283618] mb-2">Current Holdings:</h3>';
+            holdings.forEach(h => {
+                list.innerHTML += `
+                    <div class="flex items-center justify-between bg-white p-3 rounded-lg border border-[#606C38] border-opacity-20">
+                        <span class="text-[#283618] font-mono font-semibold">${h.ticker}: ${h.quantity}</span>
+                        <button onclick="removeHolding(${h.id})" class="text-[#BC6C25] hover:opacity-70">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        function showError(message) {
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('error-box').classList.remove('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('error-box').classList.add('hidden');
+        }
+
+        async function analyzePortfolio() {
+            if (holdings.length === 0) {
+                showError('Please add at least one stock holding');
+                return;
+            }
+
+            const btn = document.getElementById('analyzeBtn');
+            btn.disabled = true;
+            btn.textContent = 'Analyzing...';
+            hideError();
+
+            const holdingsObj = {};
+            holdings.forEach(h => holdingsObj[h.ticker] = h.quantity);
+
+            try {
+                const response = await fetch('http://localhost:5000/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        holdings: holdingsObj,
+                        benchmark: document.getElementById('benchmark').value,
+                        start_date: document.getElementById('startDate').value,
+                        risk_free_rate: parseFloat(document.getElementById('riskFreeRate').value)
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError(data.error);
+                    document.getElementById('results').classList.add('hidden');
+                } else {
+                    displayResults(data);
+                }
+            } catch (err) {
+                showError('Failed to connect to backend. Make sure the Flask server is running on port 5000.');
+                document.getElementById('results').classList.add('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Analyze Portfolio';
+            }
+        }
+
+        function displayResults(data) {
+            const formatPercent = (val) => (val * 100).toFixed(2) + '%';
+            const formatNumber = (val) => val.toFixed(2);
+
+            document.getElementById('port-cagr').textContent = formatPercent(data.portfolio.cagr);
+            document.getElementById('port-vol').textContent = formatPercent(data.portfolio.annual_vol);
+            document.getElementById('port-sharpe').textContent = formatNumber(data.portfolio.sharpe);
+            document.getElementById('port-drawdown').textContent = formatPercent(data.portfolio.max_drawdown);
+
+            document.getElementById('bench-name').textContent = document.getElementById('benchmark').value;
+            document.getElementById('bench-cagr').textContent = formatPercent(data.benchmark.cagr);
+            document.getElementById('bench-vol').textContent = formatPercent(data.benchmark.annual_vol);
+            document.getElementById('bench-sharpe').textContent = formatNumber(data.benchmark.sharpe);
+            document.getElementById('bench-drawdown').textContent = formatPercent(data.benchmark.max_drawdown);
+
+            document.getElementById('results').classList.remove('hidden');
+
+            // Update chart
+            const ctx = document.getElementById('chart').getContext('2d');
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.chart_data.map(d => d.date),
+                    datasets: [
+                        {
+                            label: 'Your Portfolio',
+                            data: data.chart_data.map(d => d.portfolio),
+                            borderColor: '#606C38',
+                            backgroundColor: 'rgba(96, 108, 56, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.1
+                        },
+                        {
+                            label: document.getElementById('benchmark').value,
+                            data: data.chart_data.map(d => d.benchmark),
+                            borderColor: '#DDA15E',
+                            backgroundColor: 'rgba(221, 161, 94, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#283618',
+                                font: { size: 14 }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#283618', maxTicksLimit: 10 },
+                            grid: { color: 'rgba(96, 108, 56, 0.2)' }
+                        },
+                        y: {
+                            ticks: { color: '#283618' },
+                            grid: { color: 'rgba(96, 108, 56, 0.2)' }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
