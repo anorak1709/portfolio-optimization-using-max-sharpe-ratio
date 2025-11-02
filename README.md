@@ -2,7 +2,9 @@
 
 > Professional-grade portfolio analysis and optimization platform for data-driven investors
 
-![Demo Screenshot](screenshot.png)
+![Demo Screenshot]!<img width="1893" height="976" alt="image" src="https://github.com/user-attachments/assets/ff47d04d-8f2e-4ccc-9af3-58c8e7523f49" />
+
+
 
 ## 🌟 Features
 
